@@ -5,11 +5,17 @@
 当前内容：
 
 ```text
-STM32 OLED Demo
-0123456789
+OLED 10Hz
+Frame:0000000001
 !@#$%&*+-=?:
     刘何瑾瑜
 ```
+
+任务四：屏幕内容每 100 ms 刷新一次，即 10 Hz。第二行帧数每次刷新加 1，约一秒增加 10。
+
+主循环使用 `HAL_GetTick()` 的无符号时间差调度，先检查距离上一次帧开始是否达到 `OLED_REFRESH_PERIOD_MS`（100 ms），再清空显存、绘制文字并调用 `OLED_ShowFrame()`。绘制和 I2C 传输时间包含在周期内，不是在传输后再延时 100 ms。屏幕控制器内部扫描频率仍由原驱动配置。
+
+调试器中可以观察 `oledFrameCount`（已发送帧数）、`oledFrameStartMs`（本帧开始时刻）、`oledFramePeriodMs`（两帧起点间隔）和 `oledRenderTimeMs`（绘制及发送耗时）。正常运行时周期应为 100 ms，耗时应小于 100 ms。调试暂停、断点、通信异常或其他耗时任务会影响实际刷新率。
 
 ## 工程结构
 

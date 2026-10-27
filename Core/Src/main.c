@@ -24,6 +24,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "oled.h"
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -33,7 +34,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define OLED_REFRESH_PERIOD_MS 100U
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -44,18 +45,42 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+static uint32_t oledLastRefreshTick;
+/* Watch these variables in the debugger to check the refresh rate. */
+volatile uint32_t oledFrameCount = 0U;
+volatile uint32_t oledFrameStartMs = 0U;
+volatile uint32_t oledFramePeriodMs = 0U;
+volatile uint32_t oledRenderTimeMs = 0U;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-
+static void OLED_RenderDemoFrame(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+static void OLED_RenderDemoFrame(void)
+{
+  uint32_t startMs = HAL_GetTick();
+  char frameText[17]; /* 16 ASCII characters plus the terminator. */
 
+  oledFramePeriodMs = (oledFrameCount == 0U) ? 0U : startMs - oledFrameStartMs;
+  oledFrameStartMs = startMs;
+  snprintf(frameText, sizeof(frameText), "Frame:%010lu",
+           (unsigned long)(oledFrameCount + 1U));
+
+  OLED_NewFrame();
+  OLED_PrintASCIIString(0, 0, "OLED 10Hz", &afont16x8, OLED_COLOR_NORMAL);
+  OLED_PrintASCIIString(0, 16, frameText, &afont16x8, OLED_COLOR_NORMAL);
+  OLED_PrintASCIIString(0, 32, "!@#$%&*+-=?:", &afont16x8, OLED_COLOR_NORMAL);
+  OLED_PrintString(32, 48, "刘何瑾瑜", &fontDemo16x16, OLED_COLOR_NORMAL);
+  OLED_ShowFrame();
+
+  oledRenderTimeMs = HAL_GetTick() - startMs;
+  oledFrameCount++;
+}
 /* USER CODE END 0 */
 
 /**
@@ -89,19 +114,11 @@ int main(void)
   MX_GPIO_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-  /* Wait for the OLED power supply, then draw one complete frame. */
+  /* Wait for the OLED power supply, then draw the first frame immediately. */
   HAL_Delay(20);
   OLED_Init();
-  OLED_NewFrame();
-
-  /* 128 x 64 pixels: four rows, each 16 pixels high. */
-  OLED_PrintASCIIString(0, 0, "STM32 OLED Demo", &afont16x8, OLED_COLOR_NORMAL);
-  OLED_PrintASCIIString(0, 16, "0123456789", &afont16x8, OLED_COLOR_NORMAL);
-  OLED_PrintASCIIString(0, 32, "!@#$%&*+-=?:", &afont16x8, OLED_COLOR_NORMAL);
-  OLED_PrintString(32, 48, "刘何瑾瑜", &fontDemo16x16, OLED_COLOR_NORMAL);
-
-  /* Text functions draw in RAM; this call transfers the frame to the OLED. */
-  OLED_ShowFrame();
+  oledLastRefreshTick = HAL_GetTick();
+  OLED_RenderDemoFrame();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -111,6 +128,16 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    uint32_t nowMs = HAL_GetTick();
+    /* Count from the frame start, including rendering and I2C transfer time.
+     * Unsigned subtraction also works when the HAL tick counter wraps.
+     * Rebase to now so an overdue frame never causes a burst of catch-up frames.
+     */
+    if ((uint32_t)(nowMs - oledLastRefreshTick) >= OLED_REFRESH_PERIOD_MS)
+    {
+      oledLastRefreshTick = nowMs;
+      OLED_RenderDemoFrame();
+    }
   }
   /* USER CODE END 3 */
 }
