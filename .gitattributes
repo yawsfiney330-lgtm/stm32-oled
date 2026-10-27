@@ -1,0 +1,13 @@
+# Normalize text in Git; preserve binary assets byte for byte.
+* text=auto
+*.c text
+*.h text
+*.s text
+*.S text
+*.ld text
+*.ioc text
+*.md text eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary

@@ -1,0 +1,36 @@
+# STM32CubeIDE build outputs
+/Debug/
+/Release/
+/build/
+/cmake-build-*/
+*.o
+*.obj
+*.d
+*.elf
+*.hex
+*.bin
+*.map
+*.list
+*.su
+*.cyclo
+*.gcda
+*.gcno
+
+# Eclipse workspace state and generated compiler discovery
+.metadata/
+.settings/language.settings.xml
+.recommenders/
+
+# Machine-specific debugger launches and logs
+*.launch
+*.log
+
+# Editor / operating-system temporary files
+*~
+*.bak
+*.tmp
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+Desktop.ini
